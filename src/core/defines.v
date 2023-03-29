@@ -20,7 +20,7 @@
 `define ChipEnable      1'b1                // 芯片使能 
 `define ChipDisable     1'b0                // 芯片禁止
 
-// 与具体指令相关
+// 与具体指令相关 指令的功能码
 `define EXE_NOP         6'b000000  
 `define EXE_ORI         6'b001101           // ori指令的功能码 
 `define EXE_AND         6'b100100           // and指令的功能码
@@ -41,7 +41,12 @@
 `define EXE_SYNC        6'b001111           // sync指令的功能码
 `define EXE_PREF        6'b110011           // pref指令的功能码
 
+`define EXE_MOVZ        6'b001010           // movz指令的功能码
 `define EXE_MOVN        6'b001011           // movn指令的功能码
+`define EXE_MTHI        6'b010001           
+`define EXE_MTLO        6'b010011           
+`define EXE_MFHI        6'b010000           
+`define EXE_MFLO        6'b010010           
 
 `define EXE_SPECIAL_INST    6'b000000       // sync指令码
 
@@ -57,7 +62,13 @@
 `define EXE_SLL_OP      8'b00101101
 `define EXE_SRL_OP      8'b00101011
 `define EXE_SRA_OP      8'b00100010
+
+`define EXE_MTHI_OP     8'b01000010
+`define EXE_MTLO_OP     8'b01000011
+`define EXE_MOVZ_OP     8'b01000100
 `define EXE_MOVN_OP     8'b01000101
+
+
 
 //AluSel
 `define EXE_RES_NOP     3'b000

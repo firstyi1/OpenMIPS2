@@ -232,7 +232,80 @@ module id(
                                         wreg_o <= `WriteDisable;
                                     end                                    
                                 end
-
+                                // MOVZ指令 当rt为0时 将rs移入rd中
+                                `EXE_MOVZ: begin
+                                    // 运算子类型
+                                    aluop_o     <= `EXE_MOVZ_OP;
+                                    // 运算类型
+                                    alusel_o    <= `EXE_RES_MOVE;
+                                    // 读取寄存器1
+                                    reg1_read_o <= 1'b1;
+                                    // 读取寄存器2
+                                    reg2_read_o <= 1'b1;
+                                    instvalid   <= `InstValid;
+                                    // 是否有要写入的目的寄存器
+                                    if (reg2_o == `ZeroWord) begin
+                                        wreg_o <= `WriteEnable;
+                                    end
+                                    else begin
+                                        wreg_o <= `WriteDisable;
+                                    end                               
+                                end
+                                // MTHI指令 将rs中的值移入HI中
+                                // MOVE TO HI
+                                `EXE_MTHI: begin
+                                    // 运算子类型
+                                    aluop_o     <= `EXE_MTHI_OP;
+                                    // 读取寄存器1
+                                    reg1_read_o <= 1'b1;
+                                    // 读取寄存器2
+                                    reg2_read_o <= 1'b0;
+                                    instvalid   <= `InstValid;
+                                    // 不写通用寄存器
+                                    wreg_o <= `WriteDisable;
+                                end
+                                // MTLO指令 将rs中的值移入LO中
+                                // MOVE TO LO
+                                `EXE_MTLO: begin
+                                    // 运算子类型
+                                    aluop_o     <= `EXE_MTLO_OP;
+                                    // 读取寄存器1
+                                    reg1_read_o <= 1'b1;
+                                    // 读取寄存器2
+                                    reg2_read_o <= 1'b0;
+                                    instvalid   <= `InstValid;
+                                    // 不写通用寄存器目的寄存器
+                                    wreg_o <= `WriteDisable;
+                                end
+                                // MFHI指令 将HI中的值移入rd中
+                                `EXE_MFHI: begin
+                                    // 运算子类型
+                                    aluop_o     <= `EXE_MFHI_OP;
+                                    // 运算类型
+                                    alusel_o    <= `EXE_RES_MOVE;
+                                    // 读取寄存器1
+                                    reg1_read_o <= 1'b1;
+                                    // 读取寄存器2
+                                    reg2_read_o <= 1'b0;
+                                    instvalid   <= `InstValid;
+                                    // 写通用寄存器
+                                    wreg_o <= `WriteEnable;
+                                end
+                                // MFLO指令 将LO中的值移入rd中
+                                // MOVE from LO
+                                `EXE_MFLO: begin
+                                    // 运算子类型
+                                    aluop_o     <= `EXE_MFLO_OP;
+                                    // 运算类型
+                                    alusel_o    <= `EXE_RES_MOVE;
+                                    // 读取寄存器1
+                                    reg1_read_o <= 1'b1;
+                                    // 读取寄存器2
+                                    reg2_read_o <= 1'b0;
+                                    instvalid   <= `InstValid;
+                                    // 写通用寄存器
+                                    wreg_o <= `WriteEnable;
+                                end
                                 default: begin
                                 end                                                                                                   
                             endcase // op3

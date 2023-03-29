@@ -4,6 +4,20 @@ module ex(
 
     input   wire                  rst           ,
 
+    // HILO 模块给出的HI,LO寄存器的信息
+    input   wire  [`RegBUs]       hi_i          ,
+    input   wire  [`RegBUs]       lo_i          ,
+
+    // WB阶段 指令是否要写HI,LO 用于检测HI，LO带来的数据相关
+    input   wire  [`RegBUs]       wb_hi_i       ,
+    input   wire  [`RegBUs]       wb_lo_i       ,
+    input   wire                  wb_whilo_i    ,
+
+    // MEM阶段 指令是否要写HI,LO 用于检测HI，LO带来的数据相关
+    input   wire  [`RegBUs]       mem_hi_i       ,
+    input   wire  [`RegBUs]       mem_lo_i       ,
+    input   wire                  mem_whilo_i    ,
+
     // 译码阶段送到执行阶段的信息
     // 运算子类型
     input   wire  [`AluOpBus]     aluop_i       ,
@@ -20,11 +34,16 @@ module ex(
 
     // 执行的结果
     // 目的寄存器地址
-    output  reg  [`RegAddrBus]   wd_o           ,
+    output  reg  [`RegAddrBus]    wd_o          ,
     // 是否有要写入的目的寄存器
-    output  reg                  wreg_o         ,
+    output  reg                   wreg_o        ,
     // 要写入目的寄存器的值
-    output  reg  [`RegBus]       wdata_o     
+    output  reg  [`RegBus]        wdata_o       ,
+
+    // EXE阶段的指令对HI,LO寄存器的write operation
+    input   wire  [`RegBUs]       hi_o          ,
+    input   wire  [`RegBUs]       lo_o          ,
+    input   wire                  whilo_o       
 
 );
     // 保存逻辑运算的结果
@@ -33,10 +52,37 @@ module ex(
     reg[`RegBus]    shiftres;
     // 保存移动运算的结果
     reg[`RegBus]    moveres;
-    
+    // 保存HI LO寄存器的最新值
+    reg[`RegBus]    HI;
+    reg[`RegBus]    LO;
+
+    /**
+        1. get the latest values of HI and LO register
+        resolve data hazard (RAW)
+    */
+    always @(*) begin
+        if (rst == `RstEnable) begin
+            {HI, LO} <= {`ZeroWord, `ZeroWord};
+        end
+        // the inst in MEM need to write HILO
+        else if (mem_whilo_i == `WriteEnable) begin
+            {HI, LO} <= {mem_hi_i, mem_lo_i}; 
+        end
+        // the inst in WB need to write HILO
+        else if (wb_whilo_i == `WriteEnable) begin
+            {HI, LO} <= {wb_hi_i, wb_lo_i}; 
+        end
+        else begin
+            {HI, LO} <= {hi_i, lo_i}; 
+        end
+    end
+    // ps: 这里用if else可以看出来mux是具有优先级的
+
     /**
         1. 根据 aluop_i 的运算子类型进行运算
-        1.1 进行逻辑运算
+    */
+    /**
+        1.1 logic operation
     */
     always @(*) begin
         if (rst == `RstEnable) begin
@@ -68,8 +114,7 @@ module ex(
     end
 
     /**
-        1. 根据 aluop_i 的运算子类型进行运算
-        1.2 进行移位运算
+        1.2 shift operation
     */
     always @(*) begin
         if (rst == `RstEnable) begin
@@ -100,21 +145,32 @@ module ex(
     end //always
 
     /**
-        1. 根据 aluop_i 的运算子类型进行运算
-        1.3 进行移动运算
+        1.3 move operation
     */
     always @(*) begin
         if (rst == `RstEnable) begin
             moveres <= `ZeroWord;
         end 
         else begin
+            moveres <= `ZeroWord;
             case (aluop_i)
-                // 逻辑左移
+                // MOVE from HI
+                `EXE_MFHI_OP: begin
+                    moveres <= HI;
+                end
+                // MOVE from LO
+                `EXE_MFLO_OP: begin
+                    moveres <= LO;
+                end
+                // MOVE rs to rd
+                `EXE_MOVZ_OP: begin
+                    moveres <= reg1_i;
+                end
+                // MOVE rs to rd
                 `EXE_MOVN_OP: begin
                     moveres <= reg1_i;
                 end
                 default: begin
-                    
                 end
             endcase
         end //if
@@ -144,6 +200,34 @@ module ex(
                 wdata_o <= `ZeroWord;
             end
         endcase
+    end
+
+    /**
+        3. MTHI MTLO inst
+    */
+    always @(*) begin
+        if (rst == `RstEnable) begin
+            whilo_o <= `WriteDisable;
+            hi_o    <= `ZeroWord;
+            lo_o    <= `ZeroWord;
+        end
+        else if (aluop_i == `EXE_MTHI_OP) begin
+            whilo_o <= `WriteEnable;
+            hi_o    <= reg1_i;
+            // LO remains unchanged
+            lo_o    <= LO;
+        end
+        else if (aluop_i == `EXE_MTLO_OP) begin
+            whilo_o <= `WriteEnable;
+            // HI remains unchanged
+            hi_o    <= HI;
+            lo_o    <= reg1_i;
+        end
+        else begin
+            whilo_o <= `WriteDisable;
+            hi_o    <= `ZeroWord;
+            lo_o    <= `ZeroWord;
+        end
     end
 
 endmodule
